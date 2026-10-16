@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Área do Usuário - Meus Tickets</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; max-width: 800px; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    form { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    input, textarea { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+    button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f8f9fa; }
+    .status-Aberto { color: #d9534f; font-weight: bold; }
+    .status-Em-Andamento { color: #f0ad4e; font-weight: bold; }
+    .status-Resolvido { color: #5cb85c; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2 id="welcomeMsg">👤 Área do Usuário</h2>
+    <button onclick="logout()" style="background:#6c757d;">Sair</button>
+  </header>
+
+  <h3>Abrir Novo Ticket</h3>
+  <form id="ticketForm">
+    <div>
+      <label>Título do Problema:</label>
+      <input type="text" id="title" required placeholder="Ex: Erro ao acessar o sistema">
+    </div>
+    <div>
+      <label>Descrição Detalhada:</label>
+      <textarea id="description" rows="4" required placeholder="Descreva o que está acontecendo..."></textarea>
+    </div>
+    <button type="submit">Enviar Ticket</button>
+  </form>
+
+  <h3>Meus Tickets Abertos</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Título</th>
+        <th>Descrição</th>
+        <th>Status</th>
+        <th>Data</th>
+      </tr>
+    </thead>
+    <tbody id="myTickets"></tbody>
+  </table>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    if (!user) {
+      window.location.href = '/login.html';
+    } else {
+      document.getElementById('welcomeMsg').innerText = `👤 Olá, ${user.name}`;
+    }
+
+    // Criar chamado
+    document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          title: document.getElementById('title').value,
+          description: document.getElementById('description').value
+        })
+      });
+
+      const data = await response.json();
+      alert(data.message || data.error);
+      if (response.ok) {
+        e.target.reset();
+        loadMyTickets();
+      }
+    });
+
+    // Buscar meus chamados
+    async function loadMyTickets() {
+      const response = await fetch(`/api/tickets/user/${user.id}`);
+      const tickets = await response.json();
+
+      const tbody = document.getElementById('myTickets');
+      tbody.innerHTML = '';
+
+      tickets.forEach(ticket => {
+        const statusClass = 'status-' + ticket.status.replace(' ', '-');
+        tbody.innerHTML += `
+          <tr>
+            <td>#${ticket.id}</td>
+            <td><strong>${ticket.title}</strong></td>
+            <td>${ticket.description}</td>
+            <td class="${statusClass}">${ticket.status}</td>
+            <td>${new Date(ticket.created_at).toLocaleString()}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadMyTickets();
+  </script>
+</body>
+</html>

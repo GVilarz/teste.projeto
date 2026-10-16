@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Administrador</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+    nav { margin: 15px 0; background: #e9ecef; padding: 10px; border-radius: 5px; }
+    nav a { margin-right: 15px; color: #007bff; text-decoration: none; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #343a40; color: white; }
+    select { padding: 5px; }
+    .btn-delete { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    .btn-logout { background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>⚙️ Painel de Controle (Administrador)</h2>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </header>
+
+  <!-- Navegação para o Admin acessar as outras áreas do sistema -->
+  <nav>
+    <span>Navegar como:</span>
+    <a href="/admin.html">Gerenciar Usuários</a> | 
+    <a href="/tecnico.html">Fila de Tickets (Visão de Técnico)</a> | 
+    <a href="/dashboard.html">Criar Ticket (Visão de Usuário)</a>
+  </nav>
+
+  <h3>Usuários Cadastrados</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nome</th>
+        <th>E-mail</th>
+        <th>Função / Permissão</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="usersTable">
+      <!-- Usuários carregados dinamicamente via JS -->
+    </tbody>
+  </table>
+
+  <script>
+    // Carrega a lista de usuários ao abrir a página
+    async function loadUsers() {
+      const response = await fetch('/api/admin/users');
+      const users = await response.json();
+
+      const tbody = document.getElementById('usersTable');
+      tbody.innerHTML = '';
+
+      users.forEach(user => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${user.id}</td>
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td>
+              <select onchange="updateRole(${user.id}, this.value)">
+                <option value="usuario" ${user.role === 'usuario' ? 'selected' : ''}>Usuário</option>
+                <option value="tecnico" ${user.role === 'tecnico' ? 'selected' : ''}>Técnico</option>
+                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrador</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-delete" onclick="deleteUser(${user.id})">Excluir</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Altera a função (role) do usuário no banco
+    async function updateRole(id, newRole) {
+      const response = await fetch(`/api/admin/users/${id}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      });
+
+      const data = await response.json();
+      alert(data.message || data.error);
+    }
+
+    // Remove o usuário do banco
+    async function deleteUser(id) {
+      if (confirm("Tem certeza que deseja excluir este usuário?")) {
+        const response = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        alert(data.message);
+        loadUsers();
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

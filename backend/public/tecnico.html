@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Técnico</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #28a745; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #e9ecef; }
+    select { padding: 6px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>🛠️ Central de Atendimento Técnico</h2>
+    <button onclick="logout()" style="background:#6c757d; color:white; border:none; padding:8px 12px; cursor:pointer;">Sair</button>
+  </header>
+
+  <h3>Fila de Tickets</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Solicitante</th>
+        <th>Título</th>
+        <th>Descrição</th>
+        <th>Status Atual</th>
+        <th>Alterar Status</th>
+      </tr>
+    </thead>
+    <tbody id="ticketsQueue"></tbody>
+  </table>
+
+  <script>
+    async function loadQueue() {
+      const response = await fetch('/api/tickets/all');
+      const tickets = await response.json();
+
+      const tbody = document.getElementById('ticketsQueue');
+      tbody.innerHTML = '';
+
+      tickets.forEach(ticket => {
+        tbody.innerHTML += `
+          <tr>
+            <td>#${ticket.id}</td>
+            <td>${ticket.user_name} (${ticket.user_email})</td>
+            <td><strong>${ticket.title}</strong></td>
+            <td>${ticket.description}</td>
+            <td><strong>${ticket.status}</strong></td>
+            <td>
+              <select onchange="updateStatus(${ticket.id}, this.value)">
+                <option value="Aberto" ${ticket.status === 'Aberto' ? 'selected' : ''}>Aberto</option>
+                <option value="Em Andamento" ${ticket.status === 'Em Andamento' ? 'selected' : ''}>Em Andamento</option>
+                <option value="Resolvido" ${ticket.status === 'Resolvido' ? 'selected' : ''}>Resolvido</option>
+              </select>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function updateStatus(ticketId, newStatus) {
+      const response = await fetch(`/api/tickets/${ticketId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const data = await response.json();
+      alert(data.message);
+      loadQueue();
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadQueue();
+  </script>
+</body>
+</html>
